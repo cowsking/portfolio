@@ -1,0 +1,567 @@
+<head>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://d3js.org/topojson.v3.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="./sortedBar2.js"></script>
+  <script src="./flight.js"></script>
+  <script src="./trade.js"></script>
+</head>
+
+<div style="background: #0e151f;">
+  <p>
+    <h1 id="title"> Digging Deeper</h1>
+    <h1 id="title2"> in COVID-19</h1>
+    <h3 id="discription">Data Visualization on COVID-19 data</h3>
+    <text id="moreDis">
+      The COVID-19 pandemic is impacting us from 2019 until now. The 
+    </text>
+    <br><text id="moreDis">
+      visualization tracks the trend of COVID-19 cases, death rate, and
+    </text>
+    <br><text id="moreDis">
+      vaccination rate among different countries and delves deeper into
+    </text>
+    <br><text id="moreDis">
+      the impact of COVID-19 through trade and flights at a global scale.    
+    </text>
+  </p>
+
+</div>
+
+<div class="float-container" style="background: #0e151f;">
+  <div class="container" style="background: #0e151f;">
+    <h3 id="subTitle">How is the COVID-19 impacting the world?</h3>
+    <h5 id="subDis">Changes in cases, death rate, and vaccination rate in all countries from 2020 to 2021.</h5>
+    <br>
+    <h6 id="subDis"> <em>*After pressing the button, please wait till the end of the animation to drag the slider.*</em></h6>
+    <span href="#" class="button" id="case" style="font-size: 20px">Case</span>
+    <span href="#" class="button" id="death" style="font-size: 20px">Death</span>
+    <span href="#" class="button" id="vaccination" style="font-size: 20px">Vaccination</span>
+  </div>
+
+  <div id="main" class="float-child-left" style="background: #0e151f;">
+    <!-- <svg id="map" height="600" width="1164" style= "margin-left:30px" ></svg> -->
+  </div>
+
+  <br>
+  <div class="container" style="background: #0e151f">
+    <a class="limit">2020-1-1 &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160; &#160;</a>
+    <span>
+          <input type="range" min="0" max="701" value="0" class="slider" id="timeSlider">
+    </span>  
+    <a class="limit">2021-12-2</a>
+  </div>
+
+</div>
+
+  <div class="container" style="background: #0e151f">
+    <h3 id="subTitle1">How different was the global trade under the COVID-19?</h3>
+    <h5 id="subDis">Trade import and export in different countries in 2019 & 2020</h5>
+    
+    <span href="#" class="button" id="19in" style="font-size: 20px">2019 Import</span>
+    <span href="#" class="button" id="20in" style="font-size: 20px">2020 Import</span>
+    <span href="#" class="button" id="19out" style="font-size: 20px">2019 Export</span>
+    <span href="#" class="button" id="20out" style="font-size: 20px">2020 Export</span>
+    <br> 
+    <svg id="chord" height="750" width="800" style="margin-top:50px"></svg>
+   
+  </div>
+
+  <div class="container" style="background: #0e151f">
+    <h3 id="subTitle">How different was the traffic under the COVID-19?</h3>
+    <h5 id="subDis">Compare the weekly flight density in 2019 and 2020.</h5>
+    <div id="flight" height="600"></div>
+    <span> 
+          <input type="range" min="0" max="1050" width="1100" value="300" class="slider" id="incomeSlider">
+    </span>
+  </div>
+
+
+
+
+  <body>
+    <script>
+      const main = d3.select("#main");
+
+      //find width and height of window
+      const docWidth =
+        window.innerWidth ||
+        document.documentElement.clientWidth ||
+        document.body.clientWidth;
+      const docHeight =
+        window.innerHeight ||
+        document.documentElement.clientHeight ||
+        document.body.clientHeight;
+
+      //create graph dimensions
+      const svg = main.append("svg")
+                      .attr("width", docWidth * 0.55)
+                      .attr("height", docHeight * 0.6)
+                      .style("background", "#0e151f")
+                      .style("margin", 0);
+      barchart = main.append("svg")
+      .attr("width", docWidth * 0.4)
+        .attr("height", docHeight * 0.6)
+        .attr("id", 'barchart')
+        // .style("background", "#0e151f")
+        .style("margin", 0);
+        
+      const width = svg.attr("width");
+      const height = svg.attr("height");
+      const margin = 20;
+      const mapWidth = width - margin - margin;
+      const mapHeight = height - margin - margin;
+      const map = svg.append("g")
+                     .attr("transform", "translate(" + 20 + "," + 20 + ")");
+
+      start_day = new Date("2020-01-01");
+      days = 702;
+      var data = {};
+      for (var i = 0; i < days; i++) {
+        data[i] = {};
+      }
+      async function start() {
+        function dateDiffInDays(a, b) {
+          // Discard the time and time-zone information.
+          const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+          const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
+          return Math.floor((utc2 - utc1) / (1000 * 60 * 60 * 24));
+        }
+
+        const csv = await d3.csv("vacc_processed.csv");
+        for (var i = 0; i < csv.length; i++) {
+          const cur_date = new Date(csv[i].date);
+          // const diffTime = Math.abs(cur_date - start_day);
+          var diffDays = dateDiffInDays(start_day, cur_date);
+          country = csv[i].location;
+
+          data[diffDays][country] = csv[i];
+        }
+        // console.log(data[0]["Argentina"]);
+      
+      
+      }
+      start();
+
+      const requestData = async function () {
+        const us_house = await d3.json("./world_countries.topojson");
+
+        var zips = topojson.feature(
+          us_house,
+          us_house.objects["world_countries-world_countries"]
+        );
+        var zipsMesh = topojson.mesh(
+          us_house,
+          us_house.objects["world_countries-world_countries"]
+        );
+        // console.log(zips);
+
+        var projection = d3
+          .geoEquirectangular()
+          .fitSize([mapWidth, mapHeight], zips);
+        var path = d3.geoPath().projection(projection);
+        let outcomeSelect = "case";
+        refresh = function () {
+          buttons = document.getElementsByClassName('button');
+          buttons[0].style.color = '#A7B3C8'
+          buttons[1].style.color = '#A7B3C8'
+          buttons[2].style.color = '#A7B3C8'
+          buttons[3].style.color = '#A7B3C8'
+          buttons[4].style.color = '#A7B3C8'
+          buttons[5].style.color = '#A7B3C8'
+          buttons[6].style.color = '#A7B3C8'
+          buttons[0].style['background-color'] = '#374359'
+          buttons[1].style['background-color'] = '#374359'
+          buttons[2].style['background-color'] = '#374359'
+          buttons[3].style['background-color'] = '#374359'
+          buttons[4].style['background-color'] = '#374359'
+          buttons[5].style['background-color'] = '#374359'
+          buttons[6].style['background-color'] = '#374359'
+
+       
+        }
+          // console.log(buttons[0].style.color = 'yellow')
+      //     background-color: #374359;
+      // color: #A7B3C8;
+         
+    //       <span href="#" class="button" id="case" style="font-size: 20px">Case</span>
+    // <span href="#" class="button" id="death" style="font-size: 20px">Death</span>
+    // <span href="#" class="button" id="vaccination" style="font-size: 20px">Vaccination</span>
+        // }
+        map
+          .selectAll("path.country")
+          .data(zips.features)
+          .join("path")
+          .attr("class", "country")
+          .attr("note", (d) => d.properties.name)
+          //  .style("fill", d => countryColor(d.properties.name))
+          .attr("d", path);
+        map
+          .append("path")
+          .datum(zipsMesh)
+          .attr("class", "outline")
+          .attr("d", path);
+
+        var mode = 1;
+        timeSlide = document.getElementById("timeSlider");
+        timeSlide.onchange = function () {
+          let time = Number(document.getElementById("timeSlider").value);
+          sortedBar(mode,2,time)
+          updateMap();
+        };
+
+        let btnCase = document.getElementById("case");
+        btnCase.onclick = function () {
+          outcomeSelect = "case";
+          // console.log("case");
+          mode = 1;
+          refresh()
+          btnCase.style.color = '#1A2841'
+          btnCase.style['background-color'] = '#E2ECFF'
+          updateMap();
+          sortedBar(1,1,0);
+        };
+
+        let btnDeath = document.getElementById("death");
+        btnDeath.onclick = function () {
+          outcomeSelect = "death";
+          // console.log("death");
+          mode = 0;
+          refresh()
+          btnDeath.style.color = '#1A2841'
+          btnDeath.style['background-color'] = '#E2ECFF'
+
+          updateMap();
+          sortedBar(0,1,0);
+        };
+
+        let btnVac = document.getElementById("vaccination");
+        btnVac.onclick = function () {
+          outcomeSelect = "vaccination";
+          // console.log("vaccination");
+          mode = 2;
+          refresh()
+          btnVac.style.color = '#1A2841'
+          btnVac.style['background-color'] = '#E2ECFF'
+     
+
+          updateMap();
+          sortedBar(2,1,0);
+        };
+        location_list = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola',
+        'Anguilla', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Aruba',
+        'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain',
+        'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin',
+        'Bermuda', 'Bhutan', 'Bolivia', 'Bonaire Sint Eustatius and Saba',
+        'Bosnia and Herzegovina', 'Botswana', 'Brazil',
+        'British Virgin Islands', 'Brunei', 'Bulgaria', 'Burkina Faso',
+        'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
+        'Cayman Islands', 'Central African Republic', 'Chad', 'Chile',
+        'China', 'Colombia', 'Comoros', 'Congo', 'Cook Islands',
+        'Costa Rica', "Cote d'Ivoire", 'Croatia', 'Cuba', 'Curacao',
+        'Cyprus', 'Czechia', 'Democratic Republic of Congo', 'Denmark',
+        'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt',
+        'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia',
+        'Eswatini', 'Ethiopia',
+        'Faeroe Islands', 'Falkland Islands', 'Fiji', 'Finland', 'France',
+        'French Polynesia', 'Gabon', 'Gambia', 'Georgia', 'Germany',
+        'Ghana', 'Greece', 'Greenland', 'Grenada',
+        'Guatemala', 'Guernsey', 'Guinea', 'Guinea-Bissau', 'Guyana',
+        'Haiti', 'Honduras', 'Hong Kong', 'Hungary',
+        'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq',
+        'Ireland', 'Isle of Man', 'Israel', 'Italy', 'Jamaica', 'Japan',
+        'Jersey', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo',
+        'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho',
+        'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Low income',
+        'Luxembourg', 'Macao', 'Madagascar',
+        'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
+        'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
+        'Micronesia (country)', 'Moldova', 'Monaco', 'Mongolia',
+        'Montenegro', 'Montserrat', 'Morocco', 'Mozambique', 'Myanmar',
+        'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Caledonia',
+        'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'Niue',
+        'North Macedonia', 'Northern Cyprus', 'Norway',
+        'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama',
+        'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Pitcairn',
+        'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda',
+        'Saint Helena', 'Saint Kitts and Nevis', 'Saint Lucia',
+        'Saint Vincent and the Grenadines', 'Samoa', 'San Marino',
+        'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia',
+        'Seychelles', 'Sierra Leone', 'Singapore',
+        'Sint Maarten (Dutch part)', 'Slovakia', 'Slovenia',
+        'Solomon Islands', 'Somalia', 'South Africa',
+        'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan',
+        'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan',
+        'Tajikistan', 'Tanzania', 'Thailand', 'Timor', 'Togo', 'Tokelau',
+        'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
+        'Turkmenistan', 'Turks and Caicos Islands', 'Tuvalu', 'Uganda',
+        'Ukraine', 'United Arab Emirates', 'United Kingdom',
+        'United States', 'Uruguay', 'Uzbekistan',
+        'Vanuatu', 'Vatican', 'Venezuela', 'Vietnam', 'Wallis and Futuna',
+        'Yemen', 'Zambia', 'Zimbabwe']
+
+        caseColorScale = d3
+          .scaleLog()
+          .domain([0.001, 48832228])
+          .range(["#F0BBFF", "#660064"]);
+        deathColorScale = d3
+          .scaleLinear()
+          .domain([0, 6033.739])
+          .range(["#FFBABA", "#A70000"]);
+        vaccinationColorScale = d3
+          .scaleLinear()
+          .domain([0, 121.53])
+          .range(["#BDE7FF", "#001AFF"]);
+
+        var outcomeFunctions = {
+          case: function (d) {
+            if (!d.total_cases_per_million) {
+              return "#374359";
+            }
+            return caseColorScale(d.total_cases_per_million);
+          },
+          death: function (d) {
+            if (!d.total_deaths_per_million) {
+              return "#374359";
+            }
+            return deathColorScale(d.total_deaths_per_million);
+          },
+          vaccination: function (d) {
+            if (!d.people_vaccinated_per_hundred) {
+              return "#374359";
+            }
+            return vaccinationColorScale(d.people_vaccinated_per_hundred);
+          },
+        };
+        updateMap = function () {
+          function updatemapLabel(k){
+            map.select("rect.maplab").remove();
+            map.selectAll("text.matlab").remove();
+            mapWidthInit = mapWidth/20;
+            mapHeightInit = mapHeight/20*15;
+            labelMapBox = 20;
+            if (k==1){
+              for (p=0; p<10; p++){
+              ttttttt = Math.log10(48832228);
+              map.append("text").attr("x", mapWidthInit+labelMapBox*8).classed('matlab', true).attr("y", mapHeightInit-20).text('48832228').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("text").attr("x", mapWidthInit).classed('matlab', true).attr("y", mapHeightInit-20).text('0').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("rect").classed('maplab', true).attr("width", labelMapBox).attr("height", labelMapBox).attr("x", mapWidthInit+labelMapBox*p).attr("y", mapHeightInit).style("fill", caseColorScale(ttttttt*Math.pow(10,p))).attr("opacity", 1);
+              }
+            }
+            if (k==0){
+              for (p=0; p<10; p++){
+              map.append("text").attr("x", mapWidthInit+labelMapBox*8).classed('matlab', true).attr("y", mapHeightInit-20).text('0.06%').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("text").attr("x", mapWidthInit).classed('matlab', true).attr("y", mapHeightInit-20).text('0').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("rect").classed('maplab', true).attr("width", labelMapBox).attr("height", labelMapBox).attr("x", mapWidthInit+labelMapBox*p).attr("y", mapHeightInit).style("fill", deathColorScale([Math.floor(6033/10)*p])).attr("opacity", 1);
+              }
+            }
+            if (k==2){
+              for (p=0; p<10; p++){
+              map.append("text").attr("x", mapWidthInit+labelMapBox*8).classed('matlab', true).attr("y", mapHeightInit-20).text('100%').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("text").attr("x", mapWidthInit).classed('matlab', true).attr("y", mapHeightInit-20).text('0').style("font-size", "20px").style("font-weight", "400").style("font-family","Helvetica").attr("alignment-baseline", "middle").attr("fill", "#E2ECFF").attr("opacity", 1);
+              map.append("rect").classed('maplab', true).attr("width", labelMapBox).attr("height", labelMapBox).attr("x", mapWidthInit+labelMapBox*p).attr("y", mapHeightInit).style("fill", vaccinationColorScale([Math.floor(121/10)*p])).attr("opacity", 1);
+              }
+            }
+          }
+          updatemapLabel(mode);
+
+          let time = Number(document.getElementById("timeSlider").value);
+         
+          map
+            .selectAll("path.country")
+            .data(zips.features)
+            .join("path")
+            .style("fill", "white");
+
+          map
+            .selectAll("path.country")
+            .data(zips.features)
+            .join("path")
+            .style("fill", (d) => {
+              if (d.properties.name == 'United States'){
+                console.log(data[time][d.properties.name])
+              }
+              if (d.properties.name == 'China'){
+                console.log(data[time][d.properties.name])
+              }
+              cur_data = data[time][d.properties.name];
+
+              if (cur_data == undefined) {
+                return "#374359";
+              } else {
+                return outcomeFunctions[outcomeSelect](cur_data);
+              }
+            })
+            .on("mouseover", mouseEntersPlot)
+            .on("mouseout", mouseLeavesPlot);
+
+            
+        };
+
+        document.getElementById("timeSlider").oninput = function () {
+          time =
+            (Number(document.getElementById("timeSlider").value) + 1) *
+              1000 *
+              60 *
+              60 *
+              24 +
+            start_day.getTime();
+          time = new Date(time);
+          year = String(time.getFullYear());
+          month = String(time.getMonth() + 1);
+          day = String(time.getDate());
+          // console.log(year + "-" + month + "-" + day);
+          // document.getElementById("dateDisplay").innerHTML =
+          //   year + "-" + month + "-" + day;
+        };
+        let tooltipWidth = 250;
+        let tooltipHeight = 40;
+
+        // At the end of lecture segment, we added this code to do the mouseover outline the "proper" way
+        let momesh = map
+          .append("path")
+          .attr("class", "mouseover outline")
+          .attr("d", "");
+        let tooltip = map
+          .append("g")
+          .attr("class", "tooltip")
+          .attr("visibility", "hidden");
+        tooltip
+          .append("rect")
+          .attr("fill", "black")
+          .attr("opacity", 0.9)
+          .attr("x", -tooltipWidth / 2.0)
+          .attr("y", 0)
+          .attr("width", tooltipWidth)
+          .attr("height", tooltipHeight)
+          .style("z-index", 9999);
+        let txt = tooltip
+          .append("text")
+          .attr("fill", "white")
+          .attr("text-anchor", "middle")
+          .attr("alignment-baseline", "hanging")
+          .attr("x", 0)
+          .attr("y", 2);
+        let txt2 = tooltip
+          .append("text")
+          .attr("fill", "white")
+          .attr("text-anchor", "middle")
+          .attr("alignment-baseline", "hanging")
+          .attr("x", 0)
+          .attr("y", 22);
+        function mouseEntersPlot() {
+          // Make tooltip visible
+          tooltip.style("visibility", "visible");
+
+          // Find the state SVG element and add stroke
+          let country = d3.select(this);
+          country_name = country.datum().properties.name;
+          let countryID = country.datum().id;
+          // console.log(countryID);
+
+          txt.text(country_name);
+          text2 = function (outcomeSelect) {
+            let time = Number(document.getElementById("timeSlider").value);
+            if (data[time][country_name] == undefined) {
+              return "";
+            }
+            if (outcomeSelect == "case") {
+              cases = Number.parseInt(data[time][country_name].total_cases);
+              return "Cases: " + cases;
+            }
+            if (outcomeSelect == "death") {
+              deaths = Number.parseInt(data[time][country_name].total_deaths);
+              return "Deaths: " + deaths;
+            }
+            if (outcomeSelect == "vaccination") {
+              vaccination = Number.parseInt(
+                data[time][country_name].people_vaccinated_per_hundred
+              );
+              return "Vaccination: " + vaccination + "%";
+            }
+          };
+
+          txt2.text(text2(outcomeSelect));
+
+          let bounds = path.bounds(country.datum());
+
+          let xPos = (bounds[0][0] + bounds[1][0]) / 2.0;
+          let yPos = bounds[1][1] - 15;
+
+          tooltip.attr("transform", `translate(${xPos},${yPos})`);
+
+          var mo = topojson.mesh(
+            us_house,
+            us_house.objects["world_countries-world_countries"],
+            function (a, b) {
+              return a.id === countryID || b.id === countryID;
+            }
+          );
+
+          momesh.datum(mo).attr("d", path);
+        }
+
+        function mouseLeavesPlot() {
+          tooltip.style("visibility", "hidden");
+
+          let country = d3.select(this);
+
+          momesh.attr("d", "");
+        }
+
+      };
+      requestData();
+
+    //   var width = d3.select("#chord").attr("width");
+    // var height = d3.select("#chord").attr("height");
+    var chordChart = d3.select("#chord").append("g");
+    tradeChart(0, 0);
+    let btn2019In = document.getElementById("19in");
+    btn2019In.onclick = function () {
+      refresh()
+      btn2019In.style.color = '#1A2841'
+      btn2019In.style['background-color'] = '#E2ECFF'
+     
+        tradeChart(0, 1);
+    };
+    let btn2020In = document.getElementById("20in");
+    btn2020In.onclick = function () {
+      refresh()
+      btn2020In.style.color = '#1A2841'
+      btn2020In.style['background-color'] = '#E2ECFF'
+        tradeChart(1, 1);
+    };
+    let btn2020Ex = document.getElementById("20out");
+    btn2020Ex.onclick = function () {
+      refresh()
+      btn2020Ex.style.color = '#1A2841'
+      btn2020Ex.style['background-color'] = '#E2ECFF'
+        tradeChart(2, 1);
+    };
+    let btn2019Ex = document.getElementById("19out");
+    btn2019Ex.onclick = function () {
+      refresh()
+      btn2019Ex.style.color = '#1A2841'
+      btn2019Ex.style['background-color'] = '#E2ECFF'
+        tradeChart(3, 1);
+    };
+
+    makeFlightData();
+
+    // sortedBar(1,0);
+    // let btnvacc = document.getElementById("vacc");
+    // btnvacc.onclick = function () {
+    //     sortedBar(2,1);
+    // };
+    // let btncase = document.getElementById("case");
+    // btncase.onclick = function () {
+    //     sortedBar(0,1);
+    // };
+    // let btndead = document.getElementById("death");
+    // btndead.onclick = function () {
+    //     sortedBar(1,1);
+    // };
+    </script>
+  </body>
+</div>
